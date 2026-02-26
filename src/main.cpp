@@ -21,19 +21,18 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
-// --- Network Objects ---
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-// --- MQTT Topics ---
+// MQTT Topics
 const char* state_topic = "home/sensor/esp32c3_dht11/state";
 const char* temp_config_topic = "homeassistant/sensor/esp32c3_temp/config";
 const char* hum_config_topic = "homeassistant/sensor/esp32c3_hum/config";
 
-// --- Function: Home Assistant Discovery (Updated to Fahrenheit) ---
+// --- Helper Functions ---
+
 void send_discovery_config() {
     char temp_payload[256];
-    // Changed unit_of_meas to °F
     snprintf(temp_payload, 256, 
         "{\"name\": \"C3 Temp\", \"stat_t\": \"%s\", \"unit_of_meas\": \"°F\", \"val_tpl\": \"{{ value_json.temperature }}\", \"dev_cla\": \"temperature\", \"uniq_id\": \"c3_temp_01\"}", 
         state_topic);
@@ -46,7 +45,6 @@ void send_discovery_config() {
     client.publish(hum_config_topic, hum_payload, true);
 }
 
-// --- Function: WiFi Setup ---
 void setup_wifi() {
     delay(10);
     Serial.printf("\nConnecting to %s", WIFI_SSID);
@@ -58,43 +56,46 @@ void setup_wifi() {
     Serial.println("\nWiFi connected!");
 }
 
-// --- Function: MQTT Reconnect ---
 void reconnect() {
     while (!client.connected()) {
-        Serial.print("Attempting MQTT connection...");
         if (client.connect("ESP32C3_TempSensor", MQTT_USER, MQTT_PASS)) {
-            Serial.println("connected");
             send_discovery_config();
         } else {
-            Serial.printf("failed, rc=%d. Try again in 5s\n", client.state());
             delay(5000);
         }
     }
 }
 
-// --- Function: Update OLED (Fahrenheit) ---
-void updateDisplay(float t, float h, bool mqtt) {
+void updateDisplay(float t_f, float h, bool mqtt) {
     display.clearDisplay();
     
+    // Status Bar
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
-    display.setCursor(0,0);
+    display.setCursor(0, 0);
     display.print(mqtt ? "MQTT: ONLINE" : "MQTT: OFFLINE");
-    display.drawLine(0, 11, 128, 11, SSD1306_WHITE);
+    display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
 
-    // Temperature (F)
-    display.setCursor(0, 20);
+    // Temperature (T:)
+    display.setCursor(0, 16);
     display.setTextSize(2);
-    display.printf("T: %.1f F", t);
+    display.printf("T: %.1f F", t_f);
 
-    // Humidity
-    display.setCursor(0, 45);
+    // Humidity (H:)
+    display.setCursor(0, 38);
     display.printf("H: %.0f %%", h);
+
+    // Secondary (C)
+    float t_c = (t_f - 32.0) * 5.0 / 9.0;
+    display.setCursor(0, 56); 
+    display.setTextSize(1); 
+    display.printf("Secondary: %.1f C", t_c);
 
     display.display();
 }
 
-// --- Main Setup ---
+// --- Required Core Functions ---
+
 void setup() {
     Serial.begin(115200);
 
@@ -114,33 +115,27 @@ void setup() {
     display.display();
 
     dht.begin();
-    setup_wifi(); // Compiler now knows what this is!
+    setup_wifi();
     ArduinoOTA.begin();
     client.setServer(MQTT_SERVER, 1883);
 }
 
-// --- Main Loop ---
 void loop() {
     ArduinoOTA.handle();
-    if (!client.connected()) {
-        reconnect(); // Compiler now knows what this is!
-    }
+    if (!client.connected()) { reconnect(); }
     client.loop();
 
     static unsigned long lastMsg = 0;
     if (millis() - lastMsg > 30000) { 
         lastMsg = millis();
         float h = dht.readHumidity();
-        // readTemperature(true) returns Fahrenheit
-        float t = dht.readTemperature(true); 
+        float t = dht.readTemperature(true); // Fahrenheit
 
         if (!isnan(h) && !isnan(t)) {
             char payload[128];
             snprintf(payload, 128, "{\"temperature\": %.1f, \"humidity\": %.1f}", t, h);
             client.publish(state_topic, payload);
-            
             updateDisplay(t, h, client.connected());
-            Serial.printf("Published (F): %s\n", payload);
         }
     }
 }
