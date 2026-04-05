@@ -1,46 +1,45 @@
+ESP32-C3 WiFi Weather Station connected to Home Assistant via MQTT:
 
-This directory is intended for project specific (private) libraries.
-PlatformIO will compile them to static libraries and link into the executable file.
+WiFi-connected weather station built with an ESP32-C3, featuring a DHT11 sensor, an I2C OLED display, and full Home Assistant integration via MQTT.
 
-The source code of each library should be placed in a separate directory
-("lib/your_library_name/[Code]").
+Features
+  Auto Screen Rotation: Cycles every 5 seconds between:
 
-For example, see the structure of the following example libraries `Foo` and `Bar`:
+  Indoor Stats: Real-time temperature and humidity, WiFi/MQTT connection status, and the last octet of the device IP address.
 
-|--lib
-|  |
-|  |--Bar
-|  |  |--docs
-|  |  |--examples
-|  |  |--src
-|  |     |- Bar.c
-|  |     |- Bar.h
-|  |  |- library.json (optional. for custom build options, etc) https://docs.platformio.org/page/librarymanager/config.html
-|  |
-|  |--Foo
-|  |  |- Foo.c
-|  |  |- Foo.h
-|  |
-|  |- README --> THIS FILE
-|
-|- platformio.ini
-|--src
-   |- main.c
+  Outdoor Stats: Real-time weather data pulled via API from the National Weather Service (KSAT Station).
 
-Example contents of `src/main.c` using Foo and Bar:
-```
-#include <Foo.h>
-#include <Bar.h>
+  Forecast and Sun: Current sky conditions and localized Sunrise/Sunset times.
 
-int main (void)
-{
-  ...
-}
+  Home Assistant Ready: Automatic MQTT discovery for seamless dashboard integration without manual YAML configuration.
 
-```
+  OTA (Over-the-Air) Updates: Wireless firmware flashing capabilities using the ArduinoOTA library.
 
-The PlatformIO Library Dependency Finder will find automatically dependent
-libraries by scanning project source files.
+  Auto-Dimming: Built-in support for display dimming via MQTT commands from Home Assistant.
 
-More information about PlatformIO Library Dependency Finder
-- https://docs.platformio.org/page/librarymanager/ldf.html
+Hardware Used
+  Microcontroller: ESP32-C3 (SuperMini or DevKit)
+
+  Sensor: DHT11 (Temperature & Humidity)
+
+  Display: 0.96 inch SSD1306 I2C OLED (128x64)
+
+  Power: USB-C or 5V DC input
+
+Software and Libraries
+  Environment: Built using PlatformIO and C++
+
+  Display: Adafruit_SSD1306 and Adafruit_GFX
+
+  Sensor: DHT sensor library and Adafruit Unified Sensor
+
+  Networking: PubSubClient (MQTT), HTTPClient, and ArduinoOTA
+
+  Data Parsing: ArduinoJson (v7.0+)
+
+Home Assistant Integration
+  Discovery: The device automatically appears in Home Assistant under the MQTT integration as "C3 Temp" and "C3 Hum".
+
+  Reporting: Sensor data is published to the state topic every 30 seconds.
+
+  Controls: The display brightness can be toggled via the configured dim_topic.

@@ -1,4 +1,17 @@
-node_modules/
+# Build files (This is the most important one!)
 .pio/
-.vscode/
+
+# Private credentials
+src/secrets.h
 secrets.h
+
+# Local VS Code settings
+.vscode/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# PlatformIO local state
+.pioenvs/
+.piolibdeps/
